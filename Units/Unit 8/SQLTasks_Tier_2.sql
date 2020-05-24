@@ -55,8 +55,9 @@ WHERE membercost < 0.2 * monthlymaintenance;
 Try writing the query without using the OR operator. */
 SELECT *
 FROM Facilities
-WHERE facid =1
-OR facid =5;
+WHERE (CASE WHEN facid = 1 THEN 1
+		WHEN facid = 5 THEN 1
+		ELSE 0 END) = 1
 
 
 /* Q5: Produce a list of facilities, with each labelled as
@@ -133,16 +134,38 @@ QUESTIONS:
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+SELECT F.name,
+    SUM(CASE 
+    WHEN B.memid = 0 THEN F.guestcost * B.slots
+    ELSE F.membercost * B.slots END) AS Revenue
+FROM Facilities AS F
+JOIN Bookings AS B ON F.facid = B.facid
+GROUP BY F.facid
+HAVING Revenue < 1000
+ORDER BY Revenue
 
 
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
-
+SELECT M1.surname, M1.firstname, M2.surname AS Recommender_surname, M2.firstname AS Recommender_firstname
+FROM Members AS M1
+INNER JOIN Members AS M2 ON M1.recommendedby = M2.memid
+WHERE M2.memid != 0
+ORDER BY M1.surname
 
 
 /* Q12: Find the facilities with their usage by member, but not guests */
-
+SELECT memid, name, SUM(slots) AS member_usage
+FROM Facilities
+INNER JOIN Bookings ON Facilities.facid = Bookings.facid
+GROUP BY memid, Facilities.facid
+HAVING memid != 0
+ORDER BY memid, member_usage
 
 
 /* Q13: Find the facilities usage by month, but not guests */
-
+SELECT name, EXTRACT(MONTH FROM starttime) AS Month, SUM(slots) AS member_usage
+FROM Facilities
+INNER JOIN (SELECT * FROM Bookings WHERE memid !=0) AS Bookings ON Facilities.facid = Bookings.facid
+GROUP BY Bookings.facid, Month
+ORDER BY Month
 
